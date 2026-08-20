@@ -1,0 +1,1213 @@
+from ask_ai import ask_ai
+
+# Get topic from user
+topic = input("Enter the topic: ")
+
+
+def pro_agent(topic):
+    role = """
+You are the Pro Agent.
+Support the topic.
+Give arguments, benefits, and examples.
+"""
+    return ask_ai(role, topic)
+
+
+def con_agent(topic):
+    role = """
+You are the Con Agent.
+Oppose the topic.
+Give risks, disadvantages, and examples.
+"""
+    return ask_ai(role, topic)
+
+
+def judge_agent(topic, pro_answer, con_answer):
+    role = """
+You are the Judge Agent.
+Compare both sides and give a final conclusion.
+"""
+
+    question = f"""
+TOPIC:
+{topic}
+
+PRO AGENT:
+{pro_answer}
+
+CON AGENT:
+{con_answer}
+"""
+
+    return ask_ai(role, question)
+
+
+def workflow(topic):
+    pro_answer = pro_agent(topic)
+    con_answer = con_agent(topic)
+
+    judge_answer = judge_agent(
+        topic,
+        pro_answer,
+        con_answer
+    )
+
+    print("\n===== PRO AGENT =====")
+    print(pro_answer)
+
+    print("\n===== CON AGENT =====")
+    print(con_answer)
+
+    print("\n===== JUDGE AGENT =====")
+    print(judge_answer)
+
+
+workflow(topic)
+
+import json
+import urllib.request
+import urllib.error
+
+
+# ============================================================
+# OPENROUTER CONFIGURATION
+# ============================================================
+
+API_KEY = "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"
+
+API_URL = "https://openrouter.ai/api/v1/chat/completions"
+
+MODEL = "openai/gpt-4o-mini"
+
+
+# ============================================================
+# AI API FUNCTION
+# ============================================================
+
+def ask_ai(role, question):
+
+    data = {
+        "model": MODEL,
+        "messages": [
+            {
+                "role": "system",
+                "content": role
+            },
+            {
+                "role": "user",
+                "content": question
+            }
+        ]
+    }
+
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    request = urllib.request.Request(
+        API_URL,
+        data=json.dumps(data).encode("utf-8"),
+        headers=headers,
+        method="POST"
+    )
+
+    try:
+
+        with urllib.request.urlopen(request, timeout=60) as response:
+
+            response_data = response.read().decode("utf-8")
+
+            result = json.loads(response_data)
+
+        if "choices" not in result:
+            return f"API Error: {result}"
+
+        return result["choices"][0]["message"]["content"]
+
+    except urllib.error.HTTPError as e:
+
+        error_message = e.read().decode("utf-8")
+
+        return (
+            f"\nHTTP ERROR {e.code}\n"
+            f"{error_message}\n"
+        )
+
+    except urllib.error.URLError as e:
+
+        return (
+            "\nCONNECTION ERROR\n"
+            f"{e.reason}\n"
+        )
+
+    except Exception as e:
+
+        return (
+            "\nUNEXPECTED ERROR\n"
+            f"{str(e)}\n"
+        )
+
+
+# ============================================================
+# RESEARCH AGENT
+# ============================================================
+
+def research_agent(topic):
+
+    role = """
+You are a Research Agent.
+
+Analyze the topic and prepare structured research notes.
+
+Return:
+
+1. Background
+2. Important points
+3. Benefits
+4. Challenges
+5. Practical examples
+6. Key conclusion
+
+Do not write the final article.
+
+Only provide research notes.
+"""
+
+    return ask_ai(role, topic)
+
+
+# ============================================================
+# WRITER AGENT
+# ============================================================
+
+def writer_agent(topic, research):
+
+    role = """
+You are a Writer Agent.
+
+Use the provided research notes to create
+a clear, professional and student-friendly article.
+
+Include:
+
+- Title
+- Introduction
+- Main explanation
+- Practical examples
+- Conclusion
+"""
+
+    question = f"""
+TOPIC:
+{topic}
+
+RESEARCH NOTES:
+{research}
+"""
+
+    return ask_ai(role, question)
+
+
+# ============================================================
+# REVIEW AGENT
+# ============================================================
+
+def review_agent(topic, draft):
+
+    role = """
+You are a Review Agent.
+
+Review the draft for:
+
+1. Accuracy
+2. Clarity
+3. Structure
+4. Completeness
+5. Grammar
+6. Professional quality
+
+Return:
+
+- What is good
+- What should be improved
+- Specific suggestions
+
+Do not rewrite the entire article.
+"""
+
+    question = f"""
+TOPIC:
+{topic}
+
+DRAFT:
+{draft}
+"""
+
+    return ask_ai(role, question)
+
+
+# ============================================================
+# FINAL EDITOR AGENT
+# ============================================================
+
+def final_editor_agent(topic, draft, review):
+
+    role = """
+You are the Final Editor Agent.
+
+Improve the draft using the review comments.
+
+Requirements:
+
+- Correct weaknesses
+- Improve clarity
+- Keep useful details
+- Maintain professional structure
+- Return only the final improved article
+"""
+
+    question = f"""
+TOPIC:
+{topic}
+
+ORIGINAL DRAFT:
+{draft}
+
+REVIEW COMMENTS:
+{review}
+"""
+
+    return ask_ai(role, question)
+
+
+# ============================================================
+# CONTENT WORKFLOW
+# ============================================================
+
+def content_workflow(topic):
+
+    print("\n" + "=" * 60)
+    print("CATEGORY 2 - CONTENT CREATION AGENTS")
+    print("=" * 60)
+
+    # --------------------------------------------------------
+    # RESEARCH
+    # --------------------------------------------------------
+
+    print("\n" + "-" * 60)
+    print("RESEARCH AGENT")
+    print("-" * 60)
+
+    research = research_agent(topic)
+
+    print(research)
+
+
+    # --------------------------------------------------------
+    # WRITER
+    # --------------------------------------------------------
+
+    print("\n" + "-" * 60)
+    print("WRITER AGENT")
+    print("-" * 60)
+
+    draft = writer_agent(
+        topic,
+        research
+    )
+
+    print(draft)
+
+
+    # --------------------------------------------------------
+    # REVIEW
+    # --------------------------------------------------------
+
+    print("\n" + "-" * 60)
+    print("REVIEW AGENT")
+    print("-" * 60)
+
+    review = review_agent(
+        topic,
+        draft
+    )
+
+    print(review)
+
+
+    # --------------------------------------------------------
+    # FINAL EDITOR
+    # --------------------------------------------------------
+
+    print("\n" + "-" * 60)
+    print("FINAL EDITOR AGENT")
+    print("-" * 60)
+
+    final = final_editor_agent(
+        topic,
+        draft,
+        review
+    )
+
+    print(final)
+
+
+    print("\n" + "=" * 60)
+    print("CONTENT WORKFLOW COMPLETED")
+    print("=" * 60)
+
+    return final
+
+
+# ============================================================
+# MAIN PROGRAM
+# ============================================================
+
+def main():
+
+    print("\n" + "=" * 60)
+    print("MULTI-AGENT CONTENT CREATION SYSTEM")
+    print("=" * 60)
+
+    # Check API key
+    if API_KEY == "YOUR_OPENROUTER_API_KEY":
+
+        print("\nERROR: API key not configured.")
+
+        print(
+            "\nOpen the Python file and replace:"
+        )
+
+        print(
+            'API_KEY = "YOUR_OPENROUTER_API_KEY"'
+        )
+
+        print(
+            "\nwith your actual OpenRouter API key."
+        )
+
+        return
+
+
+    topic = input("\nEnter research topic: ").strip()
+
+
+    if not topic:
+
+        print("\nERROR: Topic cannot be empty.")
+
+        return
+
+
+    content_workflow(topic)
+
+
+# ============================================================
+# START PROGRAM
+# ============================================================
+
+if __name__ == "__main__":
+    main()
+
+import json
+from pathlib import Path
+
+
+# ============================================================
+# FILE CONFIGURATION
+# ============================================================
+
+HISTORY_FILE = Path("history.json")
+MEMORY_FILE = Path("memory.json")
+
+
+# ============================================================
+# SESSION HISTORY
+# ============================================================
+
+history = []
+
+
+def add_to_session_history(task, answer):
+    """
+    Add a task and answer to the current session.
+    """
+
+    history.append({
+        "task": task,
+        "answer": answer
+    })
+
+
+def show_session_history():
+    """
+    Display history from the current Python session.
+    """
+
+    if not history:
+        print("\nNo session history yet.")
+        return
+
+    print("\n" + "=" * 60)
+    print("SESSION HISTORY")
+    print("=" * 60)
+
+    for number, item in enumerate(history, start=1):
+
+        print(f"\n{number}. Task:")
+        print(item["task"])
+
+        print("\nAnswer:")
+        print(item["answer"])
+
+
+# ============================================================
+# PERSISTENT HISTORY
+# ============================================================
+
+def load_persistent_history():
+    """
+    Load history from history.json.
+    """
+
+    if not HISTORY_FILE.exists():
+        return []
+
+    try:
+
+        data = HISTORY_FILE.read_text(
+            encoding="utf-8"
+        )
+
+        return json.loads(data)
+
+    except (json.JSONDecodeError, OSError) as error:
+
+        print(f"\nCould not load history: {error}")
+
+        return []
+
+
+def save_persistent_history(task, answer):
+    """
+    Save a task and answer permanently
+    inside history.json.
+    """
+
+    saved = load_persistent_history()
+
+    saved.append({
+        "task": task,
+        "answer": answer
+    })
+
+    try:
+
+        HISTORY_FILE.write_text(
+            json.dumps(
+                saved,
+                indent=2,
+                ensure_ascii=False
+            ),
+            encoding="utf-8"
+        )
+
+    except OSError as error:
+
+        print(f"\nCould not save history: {error}")
+
+
+def show_persistent_history():
+    """
+    Display history saved in history.json.
+    """
+
+    saved = load_persistent_history()
+
+    if not saved:
+        print("\nNo persistent history yet.")
+        return
+
+    print("\n" + "=" * 60)
+    print("PERSISTENT HISTORY")
+    print("=" * 60)
+
+    for number, item in enumerate(saved, start=1):
+
+        print(f"\n{number}. Task:")
+        print(item["task"])
+
+        print("\nAnswer:")
+        print(item["answer"])
+
+
+# ============================================================
+# MEMORY
+# ============================================================
+
+def load_memory():
+    """
+    Load saved memories from memory.json.
+    """
+
+    if not MEMORY_FILE.exists():
+        return []
+
+    try:
+
+        data = MEMORY_FILE.read_text(
+            encoding="utf-8"
+        )
+
+        return json.loads(data)
+
+    except (json.JSONDecodeError, OSError) as error:
+
+        print(f"\nCould not load memory: {error}")
+
+        return []
+
+
+def save_memory(information):
+    """
+    Save new information permanently
+    inside memory.json.
+    """
+
+    memories = load_memory()
+
+    memories.append(information)
+
+    try:
+
+        MEMORY_FILE.write_text(
+            json.dumps(
+                memories,
+                indent=2,
+                ensure_ascii=False
+            ),
+            encoding="utf-8"
+        )
+
+    except OSError as error:
+
+        print(f"\nCould not save memory: {error}")
+
+
+# ============================================================
+# MEMORY AGENT
+# ============================================================
+
+def memory_agent(question):
+    """
+    Ask the AI a question using only saved memory.
+    """
+
+    memories = load_memory()
+
+    if not memories:
+        return "No memory has been saved yet."
+
+    memory_text = "\n".join(
+        f"- {item}"
+        for item in memories
+    )
+
+    role = """
+You are a Memory Agent.
+
+Answer the user's question using ONLY
+the stored memory.
+
+Do not use outside information.
+
+If the answer is unavailable,
+say exactly:
+
+Not found in memory.
+"""
+
+    prompt = f"""
+STORED MEMORY:
+
+{memory_text}
+
+QUESTION:
+
+{question}
+"""
+
+    return ask_ai(
+        role,
+        prompt
+    )
+
+
+# ============================================================
+# HISTORY AGENT
+# ============================================================
+
+def history_agent(question):
+    """
+    Ask the AI a question using only
+    the saved conversation history.
+    """
+
+    saved = load_persistent_history()
+
+    if not saved:
+        return "No conversation history is available."
+
+    history_text = json.dumps(
+        saved,
+        indent=2,
+        ensure_ascii=False
+    )
+
+    role = """
+You are a History Agent.
+
+Use ONLY the supplied interaction history.
+
+Answer questions about:
+
+- Earlier tasks
+- Earlier answers
+- Previous decisions
+- Previous interactions
+
+Do not use outside information.
+
+If the answer cannot be found,
+say exactly:
+
+Not found in history.
+"""
+
+    prompt = f"""
+HISTORY:
+
+{history_text}
+
+QUESTION:
+
+{question}
+"""
+
+    return ask_ai(
+        role,
+        prompt
+    )
+
+
+# ============================================================
+# TESTING
+# ============================================================
+
+if __name__ == "__main__":
+
+    print("=" * 60)
+    print("MEMORY AND HISTORY SYSTEM")
+    print("=" * 60)
+
+    # Add temporary session history
+    add_to_session_history(
+        "What is Python?",
+        "Python is a high-level programming language."
+    )
+
+    # Save permanent history
+    save_persistent_history(
+        "What is AI?",
+        "AI stands for Artificial Intelligence."
+    )
+
+    # Save memory
+    save_memory(
+        "User is learning Python."
+    )
+
+    # Show session history
+    show_session_history()
+
+    # Show permanent history
+    show_persistent_history()
+
+    # Show memory
+    print("\n" + "=" * 60)
+    print("SAVED MEMORY")
+    print("=" * 60)
+
+    memories = load_memory()
+
+    for number, item in enumerate(memories, start=1):
+        print(f"{number}. {item}")
+
+    print("\nSystem test completed.")
+
+# ============================================================
+# CATEGORY 4 - ORCHESTRATION AND WORKFLOWS
+# ============================================================
+
+def question_agent(question):
+
+    role = """
+You are a helpful general AI assistant.
+
+Answer the user's question clearly and concisely.
+"""
+
+    return ask_ai(
+        role,
+        question
+    )
+
+
+# ============================================================
+# ORCHESTRATOR AGENT
+# ============================================================
+
+def orchestrator_agent(user_task):
+
+    role = """
+You are an Orchestrator Agent.
+
+Classify the user's request into exactly ONE category:
+
+DEBATE
+CONTENT
+MEMORY
+HISTORY
+QUESTION
+
+Rules:
+
+DEBATE:
+- pros and cons
+- debate
+- argue for and against
+- should / should not
+- balanced judgment
+
+CONTENT:
+- article
+- report
+- research and write
+- write-up
+- structured content
+
+MEMORY:
+- asks about saved facts
+- asks what the system remembers
+- asks what has been stored in memory
+
+HISTORY:
+- asks what happened before
+- asks what was discussed earlier
+- asks about previous tasks
+- asks about previous answers
+
+QUESTION:
+- normal questions
+- explanations
+- definitions
+- general information
+
+Return ONLY ONE WORD:
+DEBATE
+CONTENT
+MEMORY
+HISTORY
+or
+QUESTION
+"""
+
+    result = ask_ai(
+        role,
+        user_task
+    )
+
+    result = result.strip().upper()
+
+    # Remove possible extra spaces/newlines
+    result = result.split()[0] if result else ""
+
+    valid_categories = {
+        "DEBATE",
+        "CONTENT",
+        "MEMORY",
+        "HISTORY",
+        "QUESTION"
+    }
+
+    if result in valid_categories:
+        return result
+
+    return "QUESTION"
+
+
+# ============================================================
+# SMART WORKFLOW
+# ============================================================
+
+def smart_workflow(user_task):
+
+    print("\n" + "=" * 60)
+    print("CATEGORY 4 - ORCHESTRATION AND WORKFLOWS")
+    print("=" * 60)
+
+    route = orchestrator_agent(
+        user_task
+    )
+
+    print(
+        f"\nOrchestrator selected: {route}"
+    )
+
+    # --------------------------------------------------------
+    # DEBATE
+    # --------------------------------------------------------
+
+    if route == "DEBATE":
+
+        answer = debate_workflow(
+            user_task
+        )
+
+    # --------------------------------------------------------
+    # CONTENT
+    # --------------------------------------------------------
+
+    elif route == "CONTENT":
+
+        answer = content_workflow(
+            user_task
+        )
+
+    # --------------------------------------------------------
+    # MEMORY
+    # --------------------------------------------------------
+
+    elif route == "MEMORY":
+
+        answer = memory_agent(
+            user_task
+        )
+
+    # --------------------------------------------------------
+    # HISTORY
+    # --------------------------------------------------------
+
+    elif route == "HISTORY":
+
+        answer = history_agent(
+            user_task
+        )
+
+    # --------------------------------------------------------
+    # GENERAL QUESTION
+    # --------------------------------------------------------
+
+    else:
+
+        answer = question_agent(
+            user_task
+        )
+
+    # Save interaction
+    add_to_session_history(
+        user_task,
+        answer
+    )
+
+    save_persistent_history(
+        user_task,
+        answer
+    )
+
+    return answer
+
+
+# ============================================================
+# MENU
+# ============================================================
+
+def print_menu():
+
+    print(
+        """
+============================================================
+               DAY 3 - MULTI-AGENT AI LAB
+============================================================
+
+CATEGORY 1 - DEBATE AGENTS
+1. Run Debate Workflow
+
+CATEGORY 2 - CONTENT CREATION AGENTS
+2. Run Research -> Write -> Review -> Final Workflow
+3. Run Research Agent Only
+
+CATEGORY 3 - MEMORY AND HISTORY
+4. Save Memory
+5. Ask Memory Agent
+6. View Session History
+7. View Persistent History
+8. Ask History Agent
+
+CATEGORY 4 - ORCHESTRATION AND WORKFLOWS
+9. Run Smart Orchestrator
+
+0. Exit
+============================================================
+"""
+    )
+
+
+# ============================================================
+# MAIN APPLICATION
+# ============================================================
+
+def main():
+
+    while True:
+
+        print_menu()
+
+        choice = input(
+            "Enter your choice: "
+        ).strip()
+
+        # ----------------------------------------------------
+        # OPTION 1 - DEBATE
+        # ----------------------------------------------------
+
+        if choice == "1":
+
+            topic = input(
+                "\nEnter debate topic: "
+            ).strip()
+
+            if not topic:
+                print("\nTopic cannot be empty.")
+                continue
+
+            answer = debate_workflow(
+                topic
+            )
+
+            print("\nFINAL DEBATE RESULT:")
+            print(answer)
+
+            add_to_session_history(
+                topic,
+                answer
+            )
+
+            save_persistent_history(
+                topic,
+                answer
+            )
+
+        # ----------------------------------------------------
+        # OPTION 2 - CONTENT
+        # ----------------------------------------------------
+
+        elif choice == "2":
+
+            topic = input(
+                "\nEnter content topic: "
+            ).strip()
+
+            if not topic:
+                print("\nTopic cannot be empty.")
+                continue
+
+            answer = content_workflow(
+                topic
+            )
+
+            add_to_session_history(
+                topic,
+                answer
+            )
+
+            save_persistent_history(
+                topic,
+                answer
+            )
+
+        # ----------------------------------------------------
+        # OPTION 3 - RESEARCH
+        # ----------------------------------------------------
+
+        elif choice == "3":
+
+            topic = input(
+                "\nEnter research topic: "
+            ).strip()
+
+            if not topic:
+                print("\nTopic cannot be empty.")
+                continue
+
+            answer = research_agent(
+                topic
+            )
+
+            print(
+                "\nRESEARCH RESULT:"
+            )
+
+            print(answer)
+
+            add_to_session_history(
+                topic,
+                answer
+            )
+
+            save_persistent_history(
+                topic,
+                answer
+            )
+
+        # ----------------------------------------------------
+        # OPTION 4 - SAVE MEMORY
+        # ----------------------------------------------------
+
+        elif choice == "4":
+
+            information = input(
+                "\nEnter information to remember: "
+            ).strip()
+
+            if not information:
+                print("\nInformation cannot be empty.")
+                continue
+
+            save_memory(
+                information
+            )
+
+            print(
+                "\nMemory saved successfully."
+            )
+
+        # ----------------------------------------------------
+        # OPTION 5 - MEMORY AGENT
+        # ----------------------------------------------------
+
+        elif choice == "5":
+
+            question = input(
+                "\nAsk memory: "
+            ).strip()
+
+            if not question:
+                print("\nQuestion cannot be empty.")
+                continue
+
+            answer = memory_agent(
+                question
+            )
+
+            print(
+                "\nMEMORY AGENT:"
+            )
+
+            print(answer)
+
+        # ----------------------------------------------------
+        # OPTION 6 - SESSION HISTORY
+        # ----------------------------------------------------
+
+        elif choice == "6":
+
+            show_session_history()
+
+        # ----------------------------------------------------
+        # OPTION 7 - PERSISTENT HISTORY
+        # ----------------------------------------------------
+
+        elif choice == "7":
+
+            show_persistent_history()
+
+        # ----------------------------------------------------
+        # OPTION 8 - HISTORY AGENT
+        # ----------------------------------------------------
+
+        elif choice == "8":
+
+            question = input(
+                "\nAsk about previous interactions: "
+            ).strip()
+
+            if not question:
+                print("\nQuestion cannot be empty.")
+                continue
+
+            answer = history_agent(
+                question
+            )
+
+            print(
+                "\nHISTORY AGENT:"
+            )
+
+            print(answer)
+
+        # ----------------------------------------------------
+        # OPTION 9 - SMART ORCHESTRATOR
+        # ----------------------------------------------------
+
+        elif choice == "9":
+
+            task = input(
+                "\nEnter any task: "
+            ).strip()
+
+            if not task:
+                print("\nTask cannot be empty.")
+                continue
+
+            answer = smart_workflow(
+                task
+            )
+
+            print(
+                "\nFINAL ANSWER:"
+            )
+
+            print(answer)
+
+        # ----------------------------------------------------
+        # EXIT
+        # ----------------------------------------------------
+
+        elif choice == "0":
+
+            print(
+                "\nDay 3 Agentic AI Lab stopped."
+            )
+
+            break
+
+        # ----------------------------------------------------
+        # INVALID OPTION
+        # ----------------------------------------------------
+
+        else:
+
+            print(
+                "\nInvalid choice. Please enter 0-9."
+            )
+
+
+# ============================================================
+# PROGRAM START
+# ============================================================
+
+if __name__ == "__main__":
+
+    main()
