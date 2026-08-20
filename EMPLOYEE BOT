@@ -1,0 +1,457 @@
+import json
+import urllib.request
+import urllib.error
+from pathlib import Path
+
+
+# ============================================================
+# EMPLOYEE MEMORY BOT
+# PROJECT 20
+# ============================================================
+
+# ------------------------------------------------------------
+# OPENROUTER CONFIGURATION
+# ------------------------------------------------------------
+
+API_KEY = "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"
+
+API_URL = "https://openrouter.ai/api/v1/chat/completions"
+
+MODEL = "openai/gpt-4o-mini"
+
+
+# ------------------------------------------------------------
+# MEMORY FILE
+# ------------------------------------------------------------
+
+MEMORY_FILE = Path("homework.json")
+
+
+# ============================================================
+# AI API FUNCTION
+# ============================================================
+
+def ask_ai(role, question):
+
+    data = {
+        "model": MODEL,
+        "messages": [
+            {
+                "role": "system",
+                "content": role
+            },
+            {
+                "role": "user",
+                "content": question
+            }
+        ]
+    }
+
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    request = urllib.request.Request(
+        API_URL,
+        data=json.dumps(data).encode("utf-8"),
+        headers=headers,
+        method="POST"
+    )
+
+    try:
+
+        with urllib.request.urlopen(
+            request,
+            timeout=60
+        ) as response:
+
+            response_data = response.read().decode("utf-8")
+
+            result = json.loads(response_data)
+
+        if "choices" not in result:
+            return f"API Error: {result}"
+
+        return result["choices"][0]["message"]["content"]
+
+    except urllib.error.HTTPError as e:
+
+        error_message = e.read().decode("utf-8")
+
+        return (
+            f"\nHTTP ERROR {e.code}\n"
+            f"{error_message}\n"
+        )
+
+    except urllib.error.URLError as e:
+
+        return (
+            "\nCONNECTION ERROR\n"
+            f"{e.reason}\n"
+        )
+
+    except Exception as e:
+
+        return (
+            "\nUNEXPECTED ERROR\n"
+            f"{str(e)}\n"
+        )
+
+
+# ============================================================
+# LOAD EMPLOYEE MEMORY
+# ============================================================
+
+def load_memory():
+    """
+    Load employee information from employee_memory.json.
+    """
+
+    if not MEMORY_FILE.exists():
+        return []
+
+    try:
+
+        data = MEMORY_FILE.read_text(
+            encoding="utf-8"
+        )
+
+        return json.loads(data)
+
+    except (json.JSONDecodeError, OSError) as error:
+
+        print(
+            f"\nCould not load employee memory: {error}"
+        )
+
+        return []
+
+
+# ============================================================
+# SAVE EMPLOYEE MEMORY
+# ============================================================
+
+def save_memory(employee_information):
+    """
+    Save fictional employee/project information
+    permanently inside employee_memory.json.
+    """
+
+    memories = load_memory()
+
+    memories.append(employee_information)
+
+    try:
+
+        MEMORY_FILE.write_text(
+            json.dumps(
+                memories,
+                indent=4,
+                ensure_ascii=False
+            ),
+            encoding="utf-8"
+        )
+
+        print("\nEmployee information saved successfully.")
+
+    except OSError as error:
+
+        print(
+            f"\nCould not save employee memory: {error}"
+        )
+
+
+# ============================================================
+# DISPLAY SAVED MEMORY
+# ============================================================
+
+def show_memory():
+
+    memories = load_memory()
+
+    if not memories:
+
+        print("\nNo employee information found.")
+
+        return
+
+    print("\n")
+    print("=" * 60)
+    print("SAVED EMPLOYEE MEMORY")
+    print("=" * 60)
+
+    for number, employee in enumerate(
+        memories,
+        start=1
+    ):
+
+        print(f"\nEmployee {number}")
+        print("-" * 40)
+
+        for key, value in employee.items():
+
+            print(
+                f"{key}: {value}"
+            )
+
+
+# ============================================================
+# MEMORY AGENT
+# ============================================================
+
+def memory_agent(question):
+    """
+    Answer employee-related questions using ONLY
+    information stored in employee memory.
+    """
+
+    memories = load_memory()
+
+    if not memories:
+
+        return "No employee information has been saved yet."
+
+    memory_text = json.dumps(
+        memories,
+        indent=4,
+        ensure_ascii=False
+    )
+
+    role = """
+You are an Employee Information Memory Agent.
+
+Your job is to answer questions ONLY using
+the employee and project information provided
+in STORED EMPLOYEE MEMORY.
+
+Rules:
+
+1. Do not use outside information.
+2. Do not invent employee details.
+3. Do not guess missing information.
+4. If the requested information is not available,
+   respond exactly:
+
+Not found in employee memory.
+
+5. Give short and clear answers.
+6. You may compare employees if the required
+   information exists in memory.
+"""
+
+    prompt = f"""
+STORED EMPLOYEE MEMORY:
+
+{memory_text}
+
+
+USER QUESTION:
+
+{question}
+"""
+
+    return ask_ai(
+        role,
+        prompt
+    )
+
+
+# ============================================================
+# ADD EMPLOYEE
+# ============================================================
+
+def add_employee():
+
+    print("\n")
+    print("=" * 60)
+    print("ADD EMPLOYEE INFORMATION")
+    print("=" * 60)
+
+    name = input(
+        "\nEmployee Name: "
+    ).strip()
+
+    employee_id = input(
+        "Employee ID: "
+    ).strip()
+
+    department = input(
+        "Department: "
+    ).strip()
+
+    role = input(
+        "Job Role: "
+    ).strip()
+
+    skills = input(
+        "Skills: "
+    ).strip()
+
+    project = input(
+        "Project Name: "
+    ).strip()
+
+    project_description = input(
+        "Project Description: "
+    ).strip()
+
+    employee_information = {
+
+        "employee_name": name,
+
+        "employee_id": employee_id,
+
+        "department": department,
+
+        "job_role": role,
+
+        "skills": skills,
+
+        "project": project,
+
+        "project_description":
+            project_description
+    }
+
+    save_memory(
+        employee_information
+    )
+
+
+# ============================================================
+# ASK MEMORY AGENT
+# ============================================================
+
+def ask_memory():
+
+    question = input(
+        "\nAsk about an employee: "
+    ).strip()
+
+    if not question:
+
+        print(
+            "\nQuestion cannot be empty."
+        )
+
+        return
+
+    answer = memory_agent(
+        question
+    )
+
+    print("\n")
+    print("=" * 60)
+    print("MEMORY AGENT")
+    print("=" * 60)
+
+    print("\n" + answer)
+
+
+# ============================================================
+# MAIN MENU
+# ============================================================
+
+def print_menu():
+
+    print("\n")
+    print("=" * 60)
+    print("          EMPLOYEE INFORMATION MEMORY BOT")
+    print("=" * 60)
+
+    print("""
+1. Save Employee Information
+2. Ask Memory Agent
+3. View Saved Employee Memory
+0. Exit
+""")
+
+    print("=" * 60)
+
+
+# ============================================================
+# MAIN PROGRAM
+# ============================================================
+
+def main():
+
+    print("\n")
+    print("=" * 60)
+    print("       PROJECT 20 - EMPLOYEE MEMORY BOT")
+    print("=" * 60)
+
+    if API_KEY == "YOUR_NEW_OPENROUTER_API_KEY":
+
+        print("\nERROR: API key not configured.")
+
+        print(
+            "\nAdd your new OpenRouter API key "
+            "to API_KEY before using Memory Agent."
+        )
+
+        return
+
+    while True:
+
+        print_menu()
+
+        choice = input(
+            "Enter your choice: "
+        ).strip()
+
+        # ----------------------------------------------------
+        # SAVE EMPLOYEE
+        # ----------------------------------------------------
+
+        if choice == "1":
+
+            add_employee()
+
+        # ----------------------------------------------------
+        # ASK MEMORY AGENT
+        # ----------------------------------------------------
+
+        elif choice == "2":
+
+            ask_memory()
+
+        # ----------------------------------------------------
+        # VIEW MEMORY
+        # ----------------------------------------------------
+
+        elif choice == "3":
+
+            show_memory()
+
+        # ----------------------------------------------------
+        # EXIT
+        # ----------------------------------------------------
+
+        elif choice == "0":
+
+            print(
+                "\nEmployee Memory Bot stopped."
+            )
+
+            break
+
+        # ----------------------------------------------------
+        # INVALID OPTION
+        # ----------------------------------------------------
+
+        else:
+
+            print(
+                "\nInvalid choice. "
+                "Please enter 0, 1, 2 or 3."
+            )
+
+
+# ============================================================
+# PROGRAM START
+# ============================================================
+
+if __name__ == "__main__":
+
+    main()
